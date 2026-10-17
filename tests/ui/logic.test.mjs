@@ -8,6 +8,7 @@ import {
   isMarkdownPath,
   nextThemeMode,
   resolveTheme,
+  showMode,
   stepZoom,
 } from '../../src/logic.js';
 
@@ -205,6 +206,24 @@ test('history instances do not share entries', () => {
   assert.equal(b.canBack(), false);
   assert.equal(b.back(), null);
   assert.equal(a.back(), 'a');
+});
+
+test('showMode is progressive unless position depends on the rest', () => {
+  assert.equal(showMode(), 'progressive');
+  assert.equal(showMode(null), 'progressive');
+  assert.equal(showMode({}), 'progressive');
+  assert.equal(showMode({ fragment: null }), 'progressive');
+  assert.equal(showMode({ fragment: undefined }), 'progressive');
+  assert.equal(showMode({ fragment: '' }), 'progressive');
+  assert.equal(showMode({ keepPosition: false }), 'progressive');
+  assert.equal(showMode({ keepPosition: false, fragment: '' }), 'progressive');
+  assert.equal(showMode({ fragment: 'tail' }), 'positioned');
+  assert.equal(showMode({ fragment: '0' }), 'positioned');
+  assert.equal(showMode({ fragment: 'section-name' }), 'positioned');
+  assert.equal(showMode({ keepPosition: true }), 'positioned');
+  assert.equal(showMode({ keepPosition: true, fragment: '' }), 'positioned');
+  assert.equal(showMode({ keepPosition: true, fragment: null }), 'positioned');
+  assert.equal(showMode({ keepPosition: true, fragment: 'tail' }), 'positioned');
 });
 
 test('clampScroll keeps offsets inside the scroll range', () => {

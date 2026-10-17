@@ -203,8 +203,9 @@ button:focus-visible,
   overflow-wrap: break-word;
 }
 
-/* Large documents only: skipping off-screen layout saves ~150 ms on 1 MiB, but placeholder
-   heights make pixel offsets meaningless, so app.js positions by element. */
+/* Split documents only (app.js sets .is-large when restId is set, before the head is
+   inserted): skipping off-screen layout saves ~150 ms on 1 MiB, but placeholder heights
+   make pixel offsets meaningless, so app.js positions by element. */
 .doc.is-large > * {
   content-visibility: auto;
   contain-intrinsic-size: auto 500px;

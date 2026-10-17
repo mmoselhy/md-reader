@@ -5,13 +5,12 @@ import {
   createHistory,
   nextThemeMode,
   resolveTheme,
+  showMode,
   stepZoom,
 } from './logic.js';
 
 const THEME_KEY = 'mdread.theme';
 const ZOOM_KEY = 'mdread.zoom';
-/** HTML length above which the column gets `.is-large` (content-visibility, see styles.css). */
-const LARGE_DOC_CHARS = 256 * 1024;
 
 const els = {
   title: document.getElementById('doc-title'),
@@ -35,6 +34,11 @@ let themeMode = 'system';
 let zoom = 100;
 let requestId = 0;
 let readyCalled = false;
+/** Progressive append still in flight, so a fragment click can wait for its nodes. */
+let pendingRest = null;
+let pendingRestSeq = 0;
+/** Head painted at startup; the rest is fetched only after mark_ready. */
+let deferredRest = null;
 let dialogOpen = false;
 let dragOver = false;
 /** file-changed path seen before the first document is on screen. */
@@ -187,7 +191,12 @@ function showEmpty() {
 
 function paint(doc) {
   currentPath = doc.path;
-  els.doc.classList.toggle('is-large', doc.html.length > LARGE_DOC_CHARS);
+  // The previous body is gone; its append must not resolve a fragment in this one.
+  pendingRest = null;
+  pendingRestSeq = 0;
+  // Set before innerHTML so the head's first layout already skips off-screen blocks.
+  // null and undefined both mean unsplit (the backend may not have landed yet).
+  els.doc.classList.toggle('is-large', doc.restId != null);
   els.doc.innerHTML = doc.html;
   els.doc.hidden = false;
   els.empty.hidden = true;
@@ -198,7 +207,8 @@ function paint(doc) {
   hideError();
 }
 
-function scrollToFragment(fragment) {
+function fragmentElement(fragment) {
+  if (typeof fragment !== 'string' || !fragment) return null;
   let id = fragment;
   try {
     id = decodeURIComponent(fragment);
@@ -206,12 +216,32 @@ function scrollToFragment(fragment) {
     id = fragment;
   }
   if (id.startsWith('#')) id = id.slice(1);
-  const el = id ? document.getElementById(id) : null;
-  if (!el || !els.view.contains(el)) {
+  if (!id) return null;
+  const el = document.getElementById(id);
+  if (!el || !els.view.contains(el)) return null;
+  return el;
+}
+
+function scrollToFragment(fragment) {
+  const el = fragmentElement(fragment);
+  if (el) {
+    scrollToBlock(el, -12);
+    return;
+  }
+  // Tied to the rest's own request: a click during a newer open must not scroll that open.
+  const pending = pendingRest;
+  const seq = pendingRestSeq;
+  const path = currentPath;
+  if (!pending) {
     els.view.scrollTop = 0;
     return;
   }
-  scrollToBlock(el, -12);
+  pending.then(() => {
+    if (!isCurrent(seq) || !samePath(currentPath, path)) return;
+    const again = fragmentElement(fragment);
+    if (again) scrollToBlock(again, -12);
+    else els.view.scrollTop = 0;
+  });
 }
 
 /** Top-level block of the document column that contains `el`. */
@@ -247,7 +277,8 @@ function captureAnchor() {
     if (blocks[mid].getBoundingClientRect().bottom > viewTop) hi = mid;
     else lo = mid + 1;
   }
-  return { index: lo, offset: Math.max(0, viewTop - blocks[lo].getBoundingClientRect().top) };
+  // Signed: negative when the block starts below the edge (padding or a margin gap above it).
+  return { index: lo, offset: viewTop - blocks[lo].getBoundingClientRect().top };
 }
 
 function restoreAnchor(anchor) {
@@ -263,20 +294,84 @@ function restoreAnchor(anchor) {
   scrollToBlock(block, anchor.offset);
 }
 
+function commitHistory(doc, opts) {
+  if (opts.historyMode !== 'seed' && opts.historyMode !== 'push') return;
+  if (opts.historyMode === 'seed') history = createHistory();
+  history.push(doc.path);
+  uncommitted = 0;
+  historyEpoch += 1;
+}
+
+function placeDocument(doc, opts, restHtml) {
+  const anchor = opts.keepPosition ? captureAnchor() : null;
+  paint(doc);
+  if (typeof restHtml === 'string') els.doc.insertAdjacentHTML('beforeend', restHtml);
+  commitHistory(doc, opts);
+  if (opts.fragment) scrollToFragment(opts.fragment);
+  else restoreAnchor(anchor);
+}
+
+/**
+ * Fetch the rest and append it only if this request is still the one on screen.
+ * Resolves either way so a fragment click waiting on it can retry or give up.
+ */
+function appendRestLater(doc, seq) {
+  const path = doc.path;
+  const task = coreInvoke('doc_rest', { id: doc.restId })
+    .then((rest) => {
+      if (!isCurrent(seq) || !samePath(currentPath, path)) return;
+      if (typeof rest !== 'string') {
+        showError('Could not load the rest of the document');
+        return;
+      }
+      els.doc.insertAdjacentHTML('beforeend', rest);
+    })
+    .catch((err) => {
+      if (!isCurrent(seq) || !samePath(currentPath, path)) return;
+      showError(err);
+    })
+    .finally(() => {
+      if (pendingRest === task) {
+        pendingRest = null;
+        pendingRestSeq = 0;
+      }
+    });
+  pendingRest = task;
+  pendingRestSeq = seq;
+  return task;
+}
+
+/** Rest first, then head + rest in one turn, so the anchor or fragment can land. */
+async function showPositioned(doc, opts) {
+  const seq = requestId;
+  let restHtml = null;
+  let restError = null;
+  try {
+    const rest = await coreInvoke('doc_rest', { id: doc.restId });
+    // currentPath still names the document on screen; the sequence is the staleness check.
+    if (!isCurrent(seq)) return;
+    if (typeof rest !== 'string') restError = 'Could not load the rest of the document';
+    else restHtml = rest;
+  } catch (err) {
+    if (!isCurrent(seq)) return;
+    restError = err;
+  }
+  placeDocument(doc, opts, restHtml);
+  if (restError) showError(restError);
+}
+
 function showOpened(doc, options) {
   const opts = options || {};
-  paint(doc);
-  if (opts.historyMode === 'seed' || opts.historyMode === 'push') {
-    if (opts.historyMode === 'seed') history = createHistory();
-    history.push(doc.path);
-    uncommitted = 0;
-    historyEpoch += 1;
+  const mode = showMode({ fragment: opts.fragment, keepPosition: opts.keepPosition });
+  if (mode === 'positioned' && doc.restId != null) return showPositioned(doc, opts);
+  placeDocument(doc, opts, null);
+  if (doc.restId == null) return Promise.resolve();
+  // Startup calls mark_ready in this same turn, before the rest crosses IPC.
+  if (opts.deferRest) {
+    deferredRest = { doc, seq: requestId };
+    return Promise.resolve();
   }
-  if (opts.fragment) {
-    scrollToFragment(opts.fragment);
-    return;
-  }
-  restoreAnchor(opts.anchor || null);
+  return appendRestLater(doc, requestId);
 }
 
 function acceptDoc(seq, doc) {
@@ -294,7 +389,7 @@ async function openFresh(path) {
   try {
     const doc = acceptDoc(seq, await coreInvoke('open_file', { path }));
     if (!doc) return;
-    showOpened(doc, { historyMode: 'seed' });
+    await showOpened(doc, { historyMode: 'seed' });
   } catch (err) {
     if (!isCurrent(seq)) return;
     showError(err);
@@ -306,7 +401,7 @@ async function openMarkdown(path, fragment) {
   try {
     const doc = acceptDoc(seq, await coreInvoke('open_file', { path }));
     if (!doc) return;
-    showOpened(doc, { historyMode: 'push', fragment: fragment || null });
+    await showOpened(doc, { historyMode: 'push', fragment: fragment || null });
   } catch (err) {
     if (!isCurrent(seq)) return;
     showError(err);
@@ -320,7 +415,7 @@ async function reloadKeepingScroll() {
   try {
     const doc = acceptDoc(seq, await coreInvoke('open_file', { path }));
     if (!doc) return;
-    showOpened(doc, { anchor: captureAnchor() });
+    await showOpened(doc, { keepPosition: true });
   } catch (err) {
     if (!isCurrent(seq)) return;
     showError(err);
@@ -362,7 +457,7 @@ async function goHistory(direction) {
       return;
     }
     uncommitted = 0;
-    showOpened(doc);
+    await showOpened(doc);
   } catch (err) {
     if (epoch !== historyEpoch) return;
     rollbackUncommitted();
@@ -575,7 +670,8 @@ function wireUi() {
   window.addEventListener('keydown', onKeyDown, true);
 }
 
-// mark_ready runs in this turn, immediately after the DOM write.
+// mark_ready runs in this turn, immediately after the head (or the empty state
+// or the error) is in the DOM, and before a split document's rest is fetched.
 // requestAnimationFrame does not fire while the Tauri window is still hidden.
 function markReady() {
   if (readyCalled) return;
@@ -602,7 +698,7 @@ async function start() {
     }
     if (isCurrent(seq)) {
       if (isDoc(doc)) {
-        showOpened(doc, { historyMode: 'seed' });
+        showOpened(doc, { historyMode: 'seed', deferRest: true });
         followReload = !!(pendingChange && samePath(pendingChange, currentPath));
         pendingChange = null;
       } else {
@@ -616,7 +712,10 @@ async function start() {
   } finally {
     markReady();
   }
+  const restJob = deferredRest;
+  deferredRest = null;
   if (followReload) reloadKeepingScroll();
+  else if (restJob) appendRestLater(restJob.doc, restJob.seq);
 }
 
 start();

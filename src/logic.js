@@ -116,3 +116,15 @@ export function clampScroll(top, maxTop) {
   if (value > limit) return limit;
   return value;
 }
+
+/**
+ * Progressive paints the head first (startup, open, drop, plain links, history).
+ * Positioned fetches the rest before touching the DOM, because a fragment or a
+ * restored reading position may sit in the part that is not in the head.
+ */
+export function showMode(options) {
+  const source = options && typeof options === 'object' ? options : {};
+  if (source.keepPosition) return 'positioned';
+  if (typeof source.fragment === 'string' && source.fragment.length > 0) return 'positioned';
+  return 'progressive';
+}
