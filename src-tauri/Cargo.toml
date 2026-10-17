@@ -17,6 +17,7 @@ tauri = { version = "2.12", features = ["protocol-asset"] }
 tauri-plugin-dialog = "2.8"
 tauri-plugin-opener = "2.7"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html", "simd"] }
+pulldown-cmark-escape = { version = "0.11", features = ["simd"] }
 notify = "8.2"
 notify-debouncer-mini = "0.6"
 serde = { version = "1", features = ["derive"] }

@@ -36,7 +36,7 @@ tests/ui/**                  Task B
 tests/fixtures/**            (orchestrator) read-only for workers
 ```
 
-Declared crates: `tauri 2.12` (feature `protocol-asset`), `tauri-plugin-dialog 2.8`, `tauri-plugin-opener 2.7`, `pulldown-cmark 0.13` (`html`, `simd`), `notify 8.2`, `notify-debouncer-mini 0.6`, `serde`, `serde_json`. Do not add crates; if one is truly needed, say so in your report instead.
+Declared crates: `tauri 2.12` (feature `protocol-asset`), `tauri-plugin-dialog 2.8`, `tauri-plugin-opener 2.7`, `pulldown-cmark 0.13` (`html`, `simd`), `pulldown-cmark-escape 0.11` (`escape_href`, `escape_html` for attributes you emit yourself), `notify 8.2`, `notify-debouncer-mini 0.6`, `serde`, `serde_json`. Do not add crates; if one is truly needed, say so in your report instead.
 
 ## 4. IPC contract (Rust ⇄ JS)
 
