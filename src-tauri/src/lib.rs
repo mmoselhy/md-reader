@@ -45,6 +45,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::initial_doc,
             commands::open_file,
+            commands::doc_rest,
             commands::mark_ready,
         ])
         .run(tauri::generate_context!())

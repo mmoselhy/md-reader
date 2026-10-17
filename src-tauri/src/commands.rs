@@ -40,9 +40,14 @@ fn watch_file(app: &AppHandle, state: &AppState, path: &str) {
 pub async fn initial_doc(app: AppHandle, state: State<'_, AppState>) -> Result<Option<Doc>, String> {
     let slot = state.initial.clone();
     // Wait off the async worker so a slow render can't stall other commands.
-    let result = tauri::async_runtime::spawn_blocking(move || slot.wait())
+    let loaded = tauri::async_runtime::spawn_blocking(move || slot.wait())
         .await
         .map_err(|e| e.to_string())?;
+    // Publish the rest once: repeat calls get the same Doc (and `restId`) without touching the store again.
+    let result = state
+        .initial_published
+        .get_or_init(|| loaded.map(|doc| doc.map(|l| state.rest.publish(l))))
+        .clone();
     if let Ok(Some(doc)) = &result {
         if !state.watch_claimed.swap(true, Ordering::SeqCst) {
             watch_file(&app, &state, &doc.path);
@@ -53,12 +58,18 @@ pub async fn initial_doc(app: AppHandle, state: State<'_, AppState>) -> Result<O
 
 #[tauri::command]
 pub async fn open_file(app: AppHandle, state: State<'_, AppState>, path: String) -> Result<Doc, String> {
-    let doc = tauri::async_runtime::spawn_blocking(move || load_doc(&PathBuf::from(path)))
+    let loaded = tauri::async_runtime::spawn_blocking(move || load_doc(&PathBuf::from(path)))
         .await
         .map_err(|e| e.to_string())??;
+    let doc = state.rest.publish(loaded);
     state.watch_claimed.store(true, Ordering::SeqCst);
     watch_file(&app, &state, &doc.path);
     Ok(doc)
+}
+
+#[tauri::command]
+pub async fn doc_rest(state: State<'_, AppState>, id: u64) -> Result<String, String> {
+    state.rest.get(id).map(|rest| rest.as_str().to_owned())
 }
 
 #[tauri::command]

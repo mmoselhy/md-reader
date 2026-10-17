@@ -18,13 +18,63 @@ fn options() -> Options {
         | Options::ENABLE_GFM
 }
 
+/// First top-level block boundary at or after this source offset ends the head (SPEC section 5, rule 6).
+pub const HEAD_SOURCE_BYTES: usize = 32 * 1024;
+
+/// Marker event text. The writer prefixes a block with a newline unless the output so far ends in
+/// one, so the marker ends in a newline too, which leaves the following output unchanged. CommonMark
+/// turns U+0000 in the input into U+FFFD, so the NUL can't occur otherwise.
+const SPLIT_MARK: &str = "\0\n";
+
+/// The whole body, no marker.
 pub fn render_markdown(source: &str, base_dir: Option<&Path>) -> String {
+    render_events(source, base_dir, false)
+}
+
+/// `(head, rest)` of the body; `head + rest == render_markdown(..)`. `rest` is empty when there is no split.
+pub fn render_markdown_split(source: &str, base_dir: Option<&Path>) -> (String, String) {
+    let mut out = render_events(source, base_dir, true);
+    match out.find('\0') {
+        Some(at) => {
+            let rest = out.split_off(at + SPLIT_MARK.len());
+            out.truncate(at);
+            out.shrink_to_fit();
+            (out, rest)
+        }
+        None => (out, String::new()),
+    }
+}
+
+/// One `push_html` pass; with `split`, the output holds one NUL at the head/rest boundary, if any.
+fn render_events(source: &str, base_dir: Option<&Path>, split: bool) -> String {
+    // pulldown-cmark passes U+0000 through (CommonMark says U+FFFD); the marker needs the only NUL to be ours.
+    let cleaned;
+    let source = if source.contains('\0') {
+        cleaned = source.replace('\0', "\u{FFFD}");
+        &cleaned
+    } else {
+        source
+    };
     let mut events: Vec<Event> = Vec::with_capacity(source.len() / 12 + 16);
     let mut ids = HeadingIds::default();
     // Index of the open heading's Start event and its accumulated plain text.
     let mut heading: Option<(usize, String)> = None;
 
-    for event in Parser::new_ext(source, options()) {
+    // Nesting depth of the original event stream, and whether the marker is still to be placed.
+    let mut depth = 0usize;
+    let mut want_mark = split && source.len() > HEAD_SOURCE_BYTES;
+
+    for (event, range) in Parser::new_ext(source, options()).into_offset_iter() {
+        match event {
+            Event::Start(_) => depth += 1,
+            Event::End(_) => depth = depth.saturating_sub(1),
+            _ => {}
+        }
+        // Metadata renders nothing: ending the head there could leave it empty.
+        let boundary = want_mark
+            && depth == 0
+            && range.end >= HEAD_SOURCE_BYTES
+            && !matches!(event, Event::End(TagEnd::MetadataBlock(_)));
         if let (Some((_, text)), Event::Text(t) | Event::Code(t)) = (heading.as_mut(), &event) {
             text.push_str(t);
         }
@@ -62,6 +112,10 @@ pub fn render_markdown(source: &str, base_dir: Option<&Path>) -> String {
                 events.push(Event::Start(Tag::Image { link_type, dest_url, title, id }));
             }
             other => events.push(other),
+        }
+        if boundary {
+            events.push(Event::Html(SPLIT_MARK.into()));
+            want_mark = false;
         }
     }
 
@@ -360,14 +414,137 @@ mod tests {
         assert_eq!(render(""), "");
     }
 
-    #[test]
-    #[ignore]
-    fn perf_render_1mib() {
+    fn big_sample() -> String {
         let mut big = String::new();
         while big.len() < 1024 * 1024 {
             big.push_str(SAMPLE);
             big.push('\n');
         }
+        big
+    }
+
+    fn split(src: &str) -> (String, String) {
+        render_markdown_split(src, Some(Path::new(BASE)))
+    }
+
+    /// Asserts head + rest == whole render and returns the pair.
+    fn split_checked(src: &str) -> (String, String) {
+        let (head, rest) = split(src);
+        assert_eq!(format!("{head}{rest}"), render(src));
+        (head, rest)
+    }
+
+    /// At least `n` bytes of filler paragraphs.
+    fn filler(n: usize) -> String {
+        "filler paragraph of text\n\n".repeat(n / 26 + 1)
+    }
+
+    #[test]
+    fn split_1mib_is_byte_identical() {
+        let big = big_sample();
+        let (head, rest) = split_checked(&big);
+        assert!(!head.is_empty() && !rest.is_empty());
+        assert!(head.len() < 200 * 1024, "head is {} bytes", head.len());
+        assert!(head.ends_with('\n') && !head.contains('\0') && !rest.contains('\0'));
+    }
+
+    #[test]
+    fn small_doc_does_not_split() {
+        let (head, rest) = split_checked(SAMPLE);
+        assert_eq!(rest, "");
+        assert_eq!(head, render(SAMPLE));
+        assert_eq!(split("").1, "");
+    }
+
+    #[test]
+    fn one_giant_block_does_not_split() {
+        let src = format!("```\n{}```\n", "code line\n".repeat(10_000));
+        let (head, rest) = split_checked(&src);
+        assert_eq!(rest, "");
+        assert!(head.starts_with("<pre>"));
+    }
+
+    #[test]
+    fn splits_after_the_container_that_straddles_the_offset() {
+        let containers: [(&str, String, &str); 6] = [
+            ("list", "- item one\n".repeat(6000), "</ul>\n"),
+            ("table", format!("| a | b |\n|---|---|\n{}", "| 1 | 2 |\n".repeat(6000)), "</tbody></table>\n"),
+            ("blockquote", "> quoted line\n".repeat(6000), "</blockquote>\n"),
+            ("fenced code", format!("```rust\n{}```\n", "let x = 1;\n".repeat(6000)), "</code></pre>\n"),
+            ("html block", format!("<div>\n{}</div>\n", "<p>raw</p>\n".repeat(6000)), "</div>\n"),
+            ("indented code", "    indented code\n".repeat(6000), "</code></pre>\n"),
+        ];
+        for (name, container, closing) in containers {
+            assert!(container.len() > HEAD_SOURCE_BYTES, "{name}");
+            let src = format!("# Top\n\n{container}\nafter the container\n");
+            let (head, rest) = split_checked(&src);
+            assert!(head.ends_with(closing), "{name}: head ends with {:?}", &head[head.len().saturating_sub(40)..]);
+            assert_eq!(rest, "<p>after the container</p>\n", "{name}");
+        }
+    }
+
+    #[test]
+    fn footnote_definition_is_never_cut_and_numbering_matches() {
+        let src = format!(
+            "intro[^1] and again[^2]\n\n{}[^1]: first\n    continued\n\n    second para\n\n[^2]: second\n\nlate ref[^2] and[^1]\n",
+            filler(40_000)
+        );
+        let (head, rest) = split_checked(&src);
+        assert!(!head.contains("late ref"));
+        assert!(rest.contains("late ref"));
+        for part in [&head, &rest] {
+            assert_eq!(part.matches("<div class=\"footnote-definition\"").count(), part.matches("</div>").count());
+        }
+    }
+
+    #[test]
+    fn heading_ids_dedupe_across_the_split() {
+        let src = format!("# Same\n\n{}# Same\n\n# Same\n", filler(40_000));
+        let (head, rest) = split_checked(&src);
+        assert!(head.contains(r#"id="same""#));
+        assert!(rest.contains(r#"id="same-1""#) && rest.contains(r#"id="same-2""#));
+    }
+
+    #[test]
+    fn split_is_at_the_first_boundary_past_the_offset() {
+        // Each "p\n\n" block is 3 bytes and its range includes the newline: block i (0-based) ends at 3*i + 2.
+        let src = "p\n\n".repeat(HEAD_SOURCE_BYTES);
+        let (head, _) = split_checked(&src);
+        let first = (HEAD_SOURCE_BYTES - 2).div_ceil(3); // smallest i with 3*i + 2 >= HEAD_SOURCE_BYTES
+        assert_eq!(head.matches("<p>p</p>").count(), first + 1);
+    }
+
+    #[test]
+    fn thematic_break_is_a_boundary() {
+        // One 30 KB paragraph (no boundary at the offset yet), then a rule that ends past it.
+        let src = format!("{}\n\n{}\n\nnext\n", "word ".repeat(6000), "-".repeat(4000));
+        let (head, rest) = split_checked(&src);
+        assert!(head.ends_with("<hr />\n"), "{:?}", &head[head.len() - 20..]);
+        assert_eq!(rest, "<p>next</p>\n");
+    }
+
+    #[test]
+    fn nul_in_source_becomes_replacement_char_and_split_is_correct() {
+        let src = format!("a\0b\n\n{}`c\0d`\n\n<p>e\0f</p>\n\ntail\0\n", filler(HEAD_SOURCE_BYTES));
+        let (head, rest) = split_checked(&src);
+        assert!(head.starts_with("<p>a\u{FFFD}b</p>"));
+        assert!(rest.contains("c\u{FFFD}d") && rest.contains("e\u{FFFD}f") && rest.contains("tail\u{FFFD}"));
+        assert!(!format!("{head}{rest}").contains('\0'));
+    }
+
+    #[test]
+    fn front_matter_is_not_split_into() {
+        let src = format!("---\ntitle: x\n{}---\n\nfirst\n\nsecond\n", "key: value\n".repeat(4000));
+        let (head, rest) = split_checked(&src);
+        // The metadata block renders nothing, so it must not end the head by itself.
+        assert_eq!(head, "<p>first</p>\n");
+        assert_eq!(rest, "<p>second</p>\n");
+    }
+
+    #[test]
+    #[ignore]
+    fn perf_render_1mib() {
+        let big = big_sample();
         let base = Path::new(BASE);
         std::hint::black_box(render_markdown(&big, Some(base)));
         let mut best = f64::MAX;
@@ -379,5 +556,16 @@ mod tests {
         }
         println!("perf_render_1mib: {} bytes, best of 7 = {best:.2} ms", big.len());
         assert!(best < 50.0, "render took {best:.2} ms (limit 50 ms)");
+
+        std::hint::black_box(render_markdown_split(&big, Some(base)));
+        let mut best_split = f64::MAX;
+        for _ in 0..7 {
+            let t = Instant::now();
+            let out = render_markdown_split(std::hint::black_box(&big), Some(base));
+            best_split = best_split.min(t.elapsed().as_secs_f64() * 1000.0);
+            std::hint::black_box(out);
+        }
+        println!("perf_render_1mib_split: best of 7 = {best_split:.2} ms");
+        assert!(best_split < 50.0, "split render took {best_split:.2} ms (limit 50 ms)");
     }
 }
