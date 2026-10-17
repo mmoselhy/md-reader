@@ -4,10 +4,47 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>mdread</title>
-  <!-- SCAFFOLD STUB: Task B builds the UI per SPEC.md "UI". -->
-  <script type="module" src="app.js"></script>
+  <script src="theme-init.js"></script>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main id="content"></main>
+  <header class="topbar">
+    <p id="doc-title" class="doc-title">mdread</p>
+    <div class="topbar-actions">
+      <button type="button" id="open-btn" class="icon-btn" aria-label="Open" title="Open (Ctrl+O)">
+        <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" d="M2 4.2h3.2L6.5 2.8H14v9.4H2V4.2z"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.4" d="M2 6.2h12"/>
+        </svg>
+      </button>
+      <button type="button" id="theme-btn" class="icon-btn" data-mode="system" aria-label="Theme: system" title="Theme: system (Ctrl+T)">
+        <svg class="icon icon-system" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <rect x="2" y="2.4" width="12" height="8" rx="1.2" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M6 13.6h4M8 10.4v3.2"/>
+        </svg>
+        <svg class="icon icon-light" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <circle cx="8" cy="8" r="2.4" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <path fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M8 1.6v1.7M8 12.7v1.7M1.6 8h1.7M12.7 8h1.7M3.3 3.3l1.2 1.2M11.5 11.5l1.2 1.2M3.3 12.7l1.2-1.2M11.5 4.5l1.2-1.2"/>
+        </svg>
+        <svg class="icon icon-dark" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+          <path fill="currentColor" d="M8.6 1.7a5.6 5.6 0 1 0 5.5 7 4.5 4.5 0 0 1-5.5-7z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+  <div id="error-banner" class="error-banner" role="alert" hidden>
+    <p id="error-text"></p>
+    <button type="button" id="error-dismiss" class="text-btn" aria-label="Dismiss error" title="Dismiss">Dismiss</button>
+  </div>
+  <div id="view">
+    <article id="doc" class="doc" hidden></article>
+    <div id="empty" class="empty">
+      <p class="empty-lead">Open a Markdown file</p>
+      <button type="button" id="empty-open" class="text-btn">Open</button>
+      <p class="empty-hint">or drop a file here · Ctrl+O</p>
+    </div>
+  </div>
+  <div id="drag-overlay" class="drag-overlay" hidden>Drop to open</div>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

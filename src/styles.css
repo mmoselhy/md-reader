@@ -1,0 +1,487 @@
+/* Palette from SPEC §7. theme-init.js sets data-theme before this file loads. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #ffffff;
+  --fg: #1f2328;
+  --muted: #59636e;
+  --border: #d1d9e0;
+  --code-bg: #f6f8fa;
+  --link: #0969da;
+  --danger-bg: #fff1f0;
+  --danger-fg: #a40e26;
+  --danger-border: #ffcecb;
+  --alert-note: #0969da;
+  --alert-tip: #1a7f37;
+  --alert-important: #8250df;
+  --alert-warning: #9a6700;
+  --alert-caution: #cf222e;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0d1117;
+  --fg: #e6edf3;
+  --muted: #9198a1;
+  --border: #3d444d;
+  --code-bg: #151b23;
+  --link: #4493f8;
+  --danger-bg: #3d1418;
+  --danger-fg: #ffb4bc;
+  --danger-border: #6e2b33;
+  --alert-note: #4493f8;
+  --alert-tip: #3fb950;
+  --alert-important: #ab7df8;
+  --alert-warning: #d29922;
+  --alert-caution: #f85149;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+button:focus-visible,
+.doc a:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+
+.topbar {
+  flex: 0 0 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+  user-select: none;
+}
+
+.doc-title {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 13px;
+  line-height: 40px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-actions {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.icon-btn,
+.text-btn {
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.icon-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.icon-btn:hover,
+.text-btn:hover {
+  background: var(--code-bg);
+}
+
+.text-btn {
+  border-color: var(--border);
+  padding: 4px 12px;
+  background: var(--bg);
+}
+
+.icon {
+  display: none;
+}
+
+#theme-btn[data-mode="system"] .icon-system,
+#theme-btn[data-mode="light"] .icon-light,
+#theme-btn[data-mode="dark"] .icon-dark {
+  display: block;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  padding: 8px 12px;
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+  border-bottom: 1px solid var(--danger-border);
+}
+
+.error-banner p {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.error-banner .text-btn {
+  flex: none;
+  color: var(--danger-fg);
+  background: transparent;
+  border-color: var(--danger-border);
+}
+
+#view {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.empty-lead {
+  margin: 0;
+  font-size: 20px;
+}
+
+.empty-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.doc {
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 24px 32px 80px;
+  font-size: calc(16px * var(--zoom, 1));
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+/* Large documents only: skipping off-screen layout saves ~150 ms on 1 MiB, but placeholder
+   heights make pixel offsets meaningless, so app.js positions by element. */
+.doc.is-large > * {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+.doc > :first-child {
+  margin-top: 0;
+}
+
+.doc h1,
+.doc h2,
+.doc h3,
+.doc h4,
+.doc h5,
+.doc h6 {
+  margin: 1.4em 0 0.6em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.doc h1 {
+  font-size: 2em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc h2 {
+  font-size: 1.5em;
+  padding-bottom: 0.3em;
+  border-bottom: 1px solid var(--border);
+}
+
+.doc h3 { font-size: 1.25em; }
+.doc h4 { font-size: 1em; }
+.doc h5 { font-size: 0.875em; }
+.doc h6 { font-size: 0.85em; color: var(--muted); }
+
+.doc p,
+.doc ul,
+.doc ol,
+.doc dl,
+.doc table,
+.doc blockquote,
+.doc pre {
+  margin: 1em 0;
+}
+
+.doc ul,
+.doc ol {
+  padding-left: 2em;
+}
+
+.doc li + li {
+  margin-top: 0.25em;
+}
+
+.doc a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+
+.doc strong { font-weight: 600; }
+
+.doc del {
+  text-decoration: line-through;
+}
+
+.doc hr {
+  height: 1px;
+  margin: 1.5em 0;
+  border: 0;
+  background: var(--border);
+}
+
+.doc img {
+  max-width: 100%;
+  height: auto;
+}
+
+.doc code,
+.doc pre,
+.doc kbd,
+.doc samp {
+  font-family: "Cascadia Code", Consolas, monospace;
+}
+
+.doc :not(pre) > code {
+  padding: 0.2em 0.4em;
+  font-size: 85%;
+  background: var(--code-bg);
+  border-radius: 6px;
+}
+
+.doc pre {
+  padding: 16px;
+  overflow: auto;
+  line-height: 1.45;
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.doc pre code {
+  padding: 0;
+  font-size: 85%;
+  background: transparent;
+  border-radius: 0;
+  white-space: pre;
+}
+
+.doc blockquote {
+  padding: 0 1em;
+  color: var(--muted);
+  border-left: 4px solid var(--border);
+}
+
+/* pulldown-cmark emits the alert class and the body only — no title element. */
+.doc blockquote[class^="markdown-alert-"] {
+  padding: 8px 16px;
+  color: var(--fg);
+  border-radius: 6px;
+}
+
+.doc blockquote[class^="markdown-alert-"] > :first-child {
+  margin-top: 0;
+}
+
+.doc blockquote[class^="markdown-alert-"] > :last-child {
+  margin-bottom: 0;
+}
+
+.doc blockquote[class^="markdown-alert-"]::before {
+  display: block;
+  margin-bottom: 0.35em;
+  font-weight: 600;
+}
+
+.doc blockquote.markdown-alert-note {
+  border-left-color: var(--alert-note);
+  background: color-mix(in srgb, var(--alert-note) 12%, transparent);
+}
+.doc blockquote.markdown-alert-note::before {
+  content: "Note";
+  color: var(--alert-note);
+}
+
+.doc blockquote.markdown-alert-tip {
+  border-left-color: var(--alert-tip);
+  background: color-mix(in srgb, var(--alert-tip) 12%, transparent);
+}
+.doc blockquote.markdown-alert-tip::before {
+  content: "Tip";
+  color: var(--alert-tip);
+}
+
+.doc blockquote.markdown-alert-important {
+  border-left-color: var(--alert-important);
+  background: color-mix(in srgb, var(--alert-important) 12%, transparent);
+}
+.doc blockquote.markdown-alert-important::before {
+  content: "Important";
+  color: var(--alert-important);
+}
+
+.doc blockquote.markdown-alert-warning {
+  border-left-color: var(--alert-warning);
+  background: color-mix(in srgb, var(--alert-warning) 12%, transparent);
+}
+.doc blockquote.markdown-alert-warning::before {
+  content: "Warning";
+  color: var(--alert-warning);
+}
+
+.doc blockquote.markdown-alert-caution {
+  border-left-color: var(--alert-caution);
+  background: color-mix(in srgb, var(--alert-caution) 12%, transparent);
+}
+.doc blockquote.markdown-alert-caution::before {
+  content: "Caution";
+  color: var(--alert-caution);
+}
+
+.doc table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.doc th,
+.doc td {
+  padding: 6px 13px;
+  border: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.doc th {
+  font-weight: 600;
+  background: var(--code-bg);
+}
+
+.doc tbody tr:nth-child(even) {
+  background: color-mix(in srgb, var(--code-bg) 72%, var(--bg));
+}
+
+.doc li:has(input[type="checkbox"]) {
+  list-style: none;
+}
+
+.doc ul:has(li input[type="checkbox"]),
+.doc ol:has(li input[type="checkbox"]) {
+  padding-left: 1.2em;
+}
+
+.doc input[type="checkbox"] {
+  margin: 0 0.45em 0.15em 0;
+  vertical-align: middle;
+  accent-color: var(--link);
+  pointer-events: none;
+}
+
+.doc sup.footnote-reference {
+  margin-left: 0.15em;
+  font-size: 0.75em;
+  line-height: 0;
+}
+
+.doc .footnote-definition {
+  margin-top: 1em;
+  padding-top: 0.6em;
+  font-size: 0.9em;
+  color: var(--muted);
+  border-top: 1px solid var(--border);
+}
+
+.doc .footnote-definition + .footnote-definition {
+  margin-top: 0.4em;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.doc .footnote-definition-label {
+  margin-right: 0.35em;
+  font-weight: 600;
+}
+
+.doc details {
+  margin: 1em 0;
+}
+
+.doc summary {
+  cursor: pointer;
+}
+
+.drag-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  color: var(--fg);
+  font-size: 22px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.drag-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 16px;
+  border: 2px dashed var(--link);
+  border-radius: 12px;
+}
+
+.error-banner[hidden],
+#doc[hidden],
+.empty[hidden],
+.drag-overlay[hidden] {
+  display: none !important;
+}
