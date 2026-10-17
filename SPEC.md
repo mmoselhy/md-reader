@@ -4,12 +4,12 @@ The fastest local Markdown reader for Windows, with a very simple and intuitive 
 
 ## 1. Goals and measurable targets
 
-| Target | Threshold | How to measure |
-|---|---|---|
-| Render speed | `render_markdown` on a 1 MiB document < **15 ms** (release build) | `cargo test --release --manifest-path src-tauri/Cargo.toml -- --ignored --nocapture perf` (the test asserts < 50 ms to stay stable on slow machines and prints the measured time) |
-| Cold start | process start → first paint of a 1 MiB file < **500 ms** | `node tests/fixtures/gen-large.mjs`, then `$env:MDREAD_TIMING="$PWD\timing.log"; .\src-tauri\target\release\mdread.exe tests\fixtures\large.md`, then read `timing.log` |
-| No flash | the window never shows a blank white frame before content | the window starts hidden and is shown by `mark_ready` (section 4) |
-| Small and dependency-free UI | no frameworks, no bundler, no web fonts, no npm runtime dependencies | the files in `src/` are served as they are |
+| Target | Threshold | Measured in v1 (2026-10-17) | How to measure |
+|---|---|---|---|
+| Render speed | `render_markdown` on a 1 MiB document < **15 ms** (release build) | **~20 ms, missed.** Plain pulldown-cmark takes ~8 ms; the rest is heading slugs and link resolution on a very link-dense fixture | `cargo test --release --manifest-path src-tauri/Cargo.toml -- --ignored --nocapture perf` (the test asserts < 50 ms to stay stable on slow machines and prints the measured time) |
+| Cold start | process start → first paint of a 1 MiB file < **500 ms** | **~730 ms, missed.** Small files ~430–520 ms and no file ~510 ms: the WebView2 startup floor. The 1 MiB extra is IPC plus HTML parse of 2.3 MB | `node tests/fixtures/gen-large.mjs`, then `$env:MDREAD_TIMING="$PWD\timing.log"; .\src-tauri\target\release\mdread.exe tests\fixtures\large.md`, then read `timing.log` |
+| No flash | the window never shows a blank white frame before content | met | the window starts hidden and is shown by `mark_ready` (section 4) |
+| Small and dependency-free UI | no frameworks, no bundler, no web fonts, no npm runtime dependencies | met | the files in `src/` are served as they are |
 
 ## 2. Scope
 
@@ -145,9 +145,9 @@ Principles: content first, chrome minimal, everything reachable in one keystroke
 
 **Startup sequence:** `invoke('initial_doc')` → render the document, the empty state or the error → `invoke('mark_ready')` **straight after the DOM insertion** (not in `requestAnimationFrame`, which may not fire while the window is hidden).
 
-**Performance:** insert document HTML with a single `innerHTML` assignment. Apply `content-visibility: auto` with `contain-intrinsic-size` to top-level children of the document column so very large documents paint quickly. No layout thrashing in scroll handlers.
+**Performance:** insert document HTML with a single `innerHTML` assignment. For large documents only (HTML over 256 K chars, class `.is-large`), apply `content-visibility: auto` with `contain-intrinsic-size` to top-level children of the document column; this saves ~150 ms of first paint on 1 MiB. Placeholder heights make pixel offsets meaningless, so reload restores scroll by element (block index plus offset), and fragment jumps use `scrollIntoView` on the laid-out target. No layout thrashing in scroll handlers.
 
-**Pure logic** (theme cycling, theme resolution, zoom stepping and clamping, link classification, Markdown extension check, history stack, scroll clamping) lives in `src/logic.js` as an ES module with no DOM or Tauri access, and is unit-tested with `node --test tests/ui/`.
+**Pure logic** (theme cycling, theme resolution, zoom stepping and clamping, link classification, Markdown extension check, history stack, scroll clamping) lives in `src/logic.js` as an ES module with no DOM or Tauri access, and is unit-tested with `node --test "tests/ui/*.test.mjs"` (a bare directory argument doesn't work on Node 22).
 
 ## 8. Rules for all workers
 
