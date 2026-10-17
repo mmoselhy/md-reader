@@ -6,6 +6,7 @@
   <title>mdread: Fast Markdown (MD) Reader &amp; Viewer for Windows</title>
   <meta name="description" content="mdread is a free, fast Markdown (MD) reader for Windows. Open .md files instantly with light and dark themes, live reload and GitHub-flavored Markdown.">
   <link rel="canonical" href="https://mmoselhy.github.io/md-reader/">
+  <link rel="alternate" type="text/markdown" title="llms.txt" href="llms.txt">
   <meta name="robots" content="index, follow">
   <!-- Google Search Console: paste your verification tag here, e.g. <meta name="google-site-verification" content="..."> -->
 
@@ -46,6 +47,21 @@
     "screenshot": "https://mmoselhy.github.io/md-reader/assets/hero.png",
     "image": "https://mmoselhy.github.io/md-reader/assets/icon-512.png",
     "codeRepository": "https://github.com/mmoselhy/md-reader",
+    "sameAs": ["https://github.com/mmoselhy/md-reader"],
+    "datePublished": "2026-10-17",
+    "dateModified": "2026-10-17",
+    "author": { "@type": "Person", "name": "mmoselhy", "url": "https://github.com/mmoselhy" },
+    "isAccessibleForFree": true,
+    "keywords": "markdown reader, md reader, markdown viewer, md viewer, open md file windows, markdown viewer for windows, md file viewer",
+    "featureList": [
+      "Opens .md files instantly",
+      "GitHub-flavored Markdown: tables, task lists, footnotes, strikethrough, autolinks, alerts",
+      "Light, dark and system themes",
+      "Live reload when the file changes",
+      "Relative images and links between Markdown files with back and forward",
+      "Scripts in Markdown never run",
+      "Per-user installer and portable exe"
+    ],
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
   }
   </script>
@@ -54,6 +70,10 @@
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
+      { "@type": "Question", "name": "What is a good lightweight Markdown viewer for Windows?",
+        "acceptedAnswer": { "@type": "Answer", "text": "If you only need to read .md files, a dedicated viewer such as mdread opens fastest: it is a free, open-source Markdown reader for Windows 10 and 11 with GitHub-flavored rendering, light and dark themes and live reload, in a 1.5 MB installer. If you mainly write Markdown, an editor such as VS Code, Typora or Obsidian is the better fit." } },
+      { "@type": "Question", "name": "Can Windows open .md files without extra software?",
+        "acceptedAnswer": { "@type": "Answer", "text": "Partly. On Windows 11, Notepad can format basic Markdown while you edit. On Windows 10 a .md file opens as plain text. mdread adds a dedicated reader with GitHub-style rendering, themes, linked notes and live reload." } },
       { "@type": "Question", "name": "How do I open a .md file on Windows?",
         "acceptedAnswer": { "@type": "Answer", "text": "Install mdread, then double-click any .md file, drag it onto the mdread window, or press Ctrl+O inside mdread. To make mdread the default, right-click a .md file, choose Open with > Choose another app, pick mdread and tick Always use this app." } },
       { "@type": "Question", "name": "Is mdread free?",
@@ -139,6 +159,13 @@
     .stat span { color: var(--muted); font-size: 15px; }
     .note { text-align: center; color: var(--muted); font-size: 14px; margin-top: 22px; }
 
+    .facts { max-width: 760px; margin: 28px auto 0; display: grid; gap: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+    .facts div { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 12px 18px; border-bottom: 1px solid var(--border); }
+    .facts div:last-child { border-bottom: 0; }
+    .facts dt { color: var(--muted); font-weight: 600; font-size: 15px; }
+    .facts dd { margin: 0; }
+    #compare td:first-child { white-space: nowrap; }
+
     .faq { max-width: 760px; margin: 0 auto; }
     details { border: 1px solid var(--border); border-radius: 12px; padding: 0 18px; margin-bottom: 12px; }
     summary { cursor: pointer; font-weight: 600; padding: 16px 0; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
@@ -162,6 +189,8 @@
       .grid, .stats { grid-template-columns: 1fr; }
       .btn { width: 100%; justify-content: center; }
       th, td { padding: 10px 8px; }
+      .facts div { grid-template-columns: 1fr; gap: 2px; }
+      #compare td:first-child { white-space: normal; }
     }
   </style>
 </head>
@@ -195,6 +224,22 @@
       </div>
     </div>
 
+    <section id="at-a-glance">
+      <div class="wrap">
+        <h2>mdread at a glance</h2>
+        <dl class="facts">
+          <div><dt>What it is</dt><dd>A free, open-source Markdown (MD) reader and viewer for Windows</dd></div>
+          <div><dt>Runs on</dt><dd>Windows 10 and Windows 11 (x64)</dd></div>
+          <div><dt>Latest version</dt><dd>0.1.0, released October 17, 2026</dd></div>
+          <div><dt>Download size</dt><dd>1.5 MB installer, or a 4.9 MB portable exe</dd></div>
+          <div><dt>Price and license</dt><dd>Free, MIT license, no account or telemetry</dd></div>
+          <div><dt>Markdown support</dt><dd>CommonMark plus GitHub-flavored Markdown: tables, task lists, footnotes, strikethrough, autolinks, alerts</dd></div>
+          <div><dt>Built with</dt><dd>Rust (pulldown-cmark), Tauri 2 and the WebView2 runtime built into Windows</dd></div>
+          <div><dt>Source code</dt><dd><a href="https://github.com/mmoselhy/md-reader">github.com/mmoselhy/md-reader</a></dd></div>
+        </dl>
+      </div>
+    </section>
+
     <section id="features">
       <div class="wrap">
         <h2>Everything a Markdown viewer needs. Nothing it doesn't.</h2>
@@ -213,12 +258,28 @@
     <section id="how-to-open-md-files">
       <div class="wrap">
         <h2>How to open a .md file on Windows</h2>
-        <p class="sub">Windows has no built-in Markdown viewer. mdread adds one in under a minute.</p>
+        <p class="sub">Windows 11's Notepad can format basic Markdown while you edit. For a dedicated reader with GitHub-style rendering, themes and live reload, mdread takes under a minute to set up.</p>
         <ol class="steps">
           <li><div><strong>Download and run the installer.</strong> It installs for your user only, so no admin rights are needed.</div></li>
           <li><div><strong>Double-click any <code>.md</code> file,</strong> or drag it onto the mdread window, or press <kbd>Ctrl</kbd>+<kbd>O</kbd>.</div></li>
           <li><div><strong>Make it the default (optional):</strong> right-click a <code>.md</code> file → <em>Open with</em> → <em>Choose another app</em> → <strong>mdread</strong> → <em>Always</em>.</div></li>
         </ol>
+      </div>
+    </section>
+
+    <section id="compare">
+      <div class="wrap">
+        <h2>Ways to read Markdown on Windows</h2>
+        <p class="sub">Pick the right tool for the job. mdread is the one built only for reading.</p>
+        <table>
+          <thead><tr><th>Tool</th><th>What it is</th><th>Best for</th></tr></thead>
+          <tbody>
+            <tr><td><strong>mdread</strong></td><td>Dedicated, read-only Markdown viewer</td><td>Opening and reading <code>.md</code> files fast, with live reload while you edit elsewhere</td></tr>
+            <tr><td>Notepad (Windows 11)</td><td>Built-in text editor with basic Markdown formatting</td><td>Quick edits to a file</td></tr>
+            <tr><td>VS Code</td><td>Code editor with a Markdown preview pane</td><td>Writing docs inside a coding project</td></tr>
+            <tr><td>Typora, Obsidian</td><td>Markdown editors and note-taking apps</td><td>Writing and organizing lots of notes</td></tr>
+          </tbody>
+        </table>
       </div>
     </section>
 
@@ -257,6 +318,8 @@
         <h2>Questions</h2>
         <p class="sub">Short answers to what people ask most.</p>
         <div class="faq">
+          <details><summary>What is a good lightweight Markdown viewer for Windows?</summary><p>If you only need to read <code>.md</code> files, a dedicated viewer such as mdread opens fastest: it's a free, open-source Markdown reader for Windows 10 and 11 with GitHub-flavored rendering, light and dark themes and live reload, in a 1.5 MB installer. If you mainly write Markdown, an editor such as VS Code, Typora or Obsidian is the better fit.</p></details>
+          <details><summary>Can Windows open .md files without extra software?</summary><p>Partly. On Windows 11, Notepad can format basic Markdown while you edit. On Windows 10 a <code>.md</code> file opens as plain text. mdread adds a dedicated reader with GitHub-style rendering, themes, linked notes and live reload.</p></details>
           <details><summary>How do I open a .md file on Windows?</summary><p>Install mdread, then double-click any <code>.md</code> file, drag it onto the mdread window, or press <kbd>Ctrl</kbd>+<kbd>O</kbd> inside mdread. To make mdread the default, right-click a <code>.md</code> file, choose <em>Open with → Choose another app</em>, pick mdread and tick <em>Always use this app</em>.</p></details>
           <details><summary>Is mdread free?</summary><p>Yes. mdread is free and open source under the MIT license, with no ads, accounts or telemetry.</p></details>
           <details><summary>Does mdread work offline?</summary><p>Yes. Documents are read and rendered locally on your PC. Only images that a document links from the web need an internet connection.</p></details>

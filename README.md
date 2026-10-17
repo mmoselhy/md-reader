@@ -31,7 +31,7 @@
 
 ## Why mdread?
 
-Windows can't show Markdown out of the box. You get raw `#` and `**` in Notepad, or you wait for a full editor or IDE to start just to *read* a README. **mdread** is the missing piece: a tiny, focused **Markdown viewer** that opens `.md` files instantly and gets out of your way.
+To *read* a README or some notes on Windows, you usually reach for an editor: Notepad (Windows 11 formats basic Markdown, Windows 10 shows raw `#` and `**`), VS Code's preview pane, or a full note app. **mdread** is built only for reading: a tiny, focused **Markdown viewer** that opens `.md` files instantly, renders them the way GitHub does, and gets out of your way.
 
 ## Features
 

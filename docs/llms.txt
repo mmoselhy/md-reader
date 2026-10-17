@@ -1,0 +1,35 @@
+# mdread
+
+> mdread is a free, open-source Markdown (MD) reader and viewer for Windows 10 and 11. It opens .md files instantly and renders GitHub-flavored Markdown (tables, task lists, footnotes, strikethrough, autolinks, alerts), with light/dark/system themes and live reload when the file changes. 1.5 MB installer or 4.9 MB portable exe; MIT license; no account or telemetry. Built with Rust (pulldown-cmark), Tauri 2 and the WebView2 runtime built into Windows.
+
+Key facts:
+
+- Name: mdread (repository: md-reader)
+- Category: Markdown viewer / reader (read-only; not an editor)
+- Platform: Windows 10 and Windows 11, x64
+- Latest version: 0.1.0, released 2026-10-17
+- Price: free; license: MIT
+- Install: per-user installer (no admin rights) that registers .md, .markdown, .mdown, .mkd, .mkdn, or a portable single exe
+- Open a file: double-click a .md file, drag it onto the window, `mdread.exe file.md`, or Ctrl+O
+- Shortcuts: Ctrl+T theme, Ctrl+= / Ctrl+- / Ctrl+0 text size, F5 reload, Alt+Left / Alt+Right back and forward through linked notes
+- Safety: scripts embedded in Markdown never run; links to local non-Markdown files are revealed in Explorer, not executed
+- Builds are not code-signed yet, so Windows SmartScreen may warn on first run (More info, then Run anyway)
+- When to use something else: for writing Markdown, an editor such as VS Code, Typora or Obsidian fits better; on Windows 11, Notepad can format basic Markdown while editing
+
+## Download
+
+- [Installer for Windows (v0.1.0)](https://github.com/mmoselhy/md-reader/releases/download/v0.1.0/mdread_0.1.0_x64-setup.exe): recommended
+- [Portable exe (v0.1.0)](https://github.com/mmoselhy/md-reader/releases/download/v0.1.0/mdread-0.1.0-x64-portable.exe)
+- [All releases](https://github.com/mmoselhy/md-reader/releases)
+
+## Docs
+
+- [Website](https://mmoselhy.github.io/md-reader/): features, how to open .md files on Windows, FAQ
+- [README](https://github.com/mmoselhy/md-reader/blob/main/README.md): overview, download, shortcuts, build from source
+- [Design spec](https://github.com/mmoselhy/md-reader/blob/main/SPEC.md): architecture, rendering rules, IPC contract, performance targets
+
+## Optional
+
+- [Source code](https://github.com/mmoselhy/md-reader)
+- [License (MIT)](https://github.com/mmoselhy/md-reader/blob/main/LICENSE)
+- [Report an issue](https://github.com/mmoselhy/md-reader/issues)
