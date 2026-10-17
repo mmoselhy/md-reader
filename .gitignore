@@ -1,0 +1,6 @@
+/src-tauri/target/
+/src-tauri/gen/
+node_modules/
+/tests/fixtures/large.md
+/.orc/
+*.log
